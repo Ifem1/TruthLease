@@ -195,13 +195,13 @@ Return ONLY one JSON object with exactly these fields:
 {{"status":"CONFIRMED|CONFLICTED|SUPERSEDED|UNVERIFIED","reason_code":"CURRENTLY_SUPPORTED|MATERIAL_SOURCE_CONFLICT|CURRENT_EVIDENCE_OVERTURNS|INSUFFICIENT_EVIDENCE","confidence":"LOW|MEDIUM|HIGH","contradiction":true|false,"material_change":true|false,"source_coverage":0,"evidence_summary":"<= 600 characters"}}
 Rules: reason_code must map respectively to the four statuses; source_coverage is 0..{len(sources)}; do not treat absence of evidence as falsity.
 """
-            return self._parse_assessment(gl.nondet.exec_prompt(prompt), len(sources))
+            return self._parse_assessment(gl.nondet.exec_prompt(prompt, response_format="json"), len(sources))
 
         def validator_fn(leader_result: typing.Any) -> bool:
-            if isinstance(leader_result, Exception):
+            if not isinstance(leader_result, gl.vm.Return):
                 return False
             try:
-                leader = self._normalize_assessment(leader_result, len(sources))
+                leader = self._normalize_assessment(leader_result.calldata, len(sources))
                 own = assess()
                 if leader["status"] != own["status"] or leader["reason_code"] != own["reason_code"]:
                     return False
@@ -245,9 +245,6 @@ Rules: reason_code must map respectively to the four statuses; source_coverage i
         return result
 
     def _parse_assessment(self, raw: typing.Any, source_count: int) -> dict[str, typing.Any]:
-        # GenLayer direct-mode mocks may deserialize JSON into a Python object before
-        # returning it. Real nondeterministic prompt output may be text. Supporting
-        # both keeps parsing strict while making the test path faithful to runtime.
         if isinstance(raw, dict):
             return self._normalize_assessment(raw, source_count)
         if not isinstance(raw, str):
