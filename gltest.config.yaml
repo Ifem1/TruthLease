@@ -1,0 +1,7 @@
+networks:
+  localnet:
+    endpoint: http://localhost:4000/api
+  studionet:
+    endpoint: http://localhost:4000/api
+
+contracts_dir: contracts
