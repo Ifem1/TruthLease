@@ -3,8 +3,8 @@
 - **Category:** Standalone Intelligent Contract
 - **Purpose:** Consensus-backed, expiring factual leases for contracts that need a fresh external claim before acting.
 - **Repository:** https://github.com/Ifem1/TruthLease
-- **Canonical Studionet address:** `0xd638D12370b30877Bdc531E0aD6c2D48a90e520d`
-- **Deployment transaction:** `0x797dbc1e259c0e9e380f28098e4d300d094cbd044cab33efbcdd91c890f607c6` (`ACCEPTED`, `MAJORITY_AGREE`)
+- **Canonical Studionet address:** `0x706Dba371c2E7907c4da395C6345f636b438c09e`
+- **Deployment transaction:** `0x58ba24897decd2a163653862c726ffbed063892047ca89687d00feec3fd3eee8` (`ACCEPTED`, `MAJORITY_AGREE`)
 
 TruthLease uses GenLayer consensus for the load-bearing semantic task: independent validators retrieve the registered evidence set and assess whether it currently supports, conflicts with, overturns, or cannot establish a proposition. Exact lifecycle semantics are compared; bounded source-availability and confidence differences are tolerated. Deterministic code controls IDs, ownership, bounds, expiry, state mutation, and downstream usability.
 
