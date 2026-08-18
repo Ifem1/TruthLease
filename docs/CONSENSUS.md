@@ -125,6 +125,8 @@ Network consensus then determines whether the transaction's proposed nondetermin
 
 ## Deterministic boundary
 
+The lease specification digest is deterministic and is not an LLM or validator diagnostic. It binds the proposition, context, lexicographically canonicalized source set, and source policy. TTL is excluded because a consumer binds the factual/evidence configuration while TruthLease separately enforces freshness.
+
 After consensus, only deterministic code may mutate lease state.
 
 The LLM does not control:

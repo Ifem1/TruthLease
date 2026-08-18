@@ -7,6 +7,7 @@ from genlayer import *
 class TruthLeaseInterface:
     class View:
         def is_usable(self, lease_id: str) -> bool: ...
+        def is_usable_for(self, lease_id: str, expected_spec_hash: str) -> bool: ...
         def get_lease(self, lease_id: str): ...
 
     class Write:
@@ -22,16 +23,18 @@ class FreshFactGate(gl.Contract):
     """
 
     truthlease_address: Address
+    expected_spec_hash: str
     accepted_payloads: TreeMap[str, str]
 
-    def __init__(self, truthlease_address: Address):
+    def __init__(self, truthlease_address: Address, expected_spec_hash: str):
         self.truthlease_address = truthlease_address
+        self.expected_spec_hash = expected_spec_hash
 
     @gl.public.write
     def accept_if_fresh(self, lease_id: str, payload: str) -> None:
         truthlease = TruthLeaseInterface(self.truthlease_address)
-        if not truthlease.view().is_usable(lease_id):
-            raise gl.vm.UserError("fresh confirmed TruthLease required")
+        if not truthlease.view().is_usable_for(lease_id, self.expected_spec_hash):
+            raise gl.vm.UserError("matching fresh confirmed TruthLease required")
 
         self.accepted_payloads[lease_id] = payload
 

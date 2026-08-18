@@ -1,12 +1,12 @@
 # Integrating TruthLease
 
-Treat TruthLease as a narrow freshness oracle. A consuming Intelligent Contract needs only the stable view surface:
+Treat TruthLease as a specification-bound freshness oracle. Pin the expected digest at consumer deployment and use the stable view surface:
 
 ```python
-if not truthlease.view().is_usable(lease_id):
-    raise gl.vm.UserError("fresh confirmed TruthLease required")
+if not truthlease.view().is_usable_for(lease_id, expected_spec_hash):
+    raise gl.vm.UserError("matching fresh confirmed TruthLease required")
 ```
 
-`is_usable` is the recommended machine-readable gate. It is true only for a `CONFIRMED` record whose `valid_until` has not passed. Use `get_lease` when an application needs the audit fields, current effective status, evidence URLs, version, or expiry. Do not use the free-form `evidence_summary` as a settlement input.
+`is_usable_for` is the recommended machine-readable gate. It additionally requires the stored `spec_hash` to equal the consumer-pinned hash. The hash canonically binds proposition, context, sorted source set, and source policy. TTL is deliberately excluded: it controls how long a confirmation remains fresh, not which factual specification is being trusted. `is_usable` is only appropriate when the consumer has already pinned the corresponding specification by some other means. Do not use confidence, source coverage, or free-form evidence summaries as settlement inputs.
 
 See `examples/truth_lease_consumer.py` for a minimal interface-only composition example.

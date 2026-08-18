@@ -4,6 +4,7 @@ from genlayer import *
 from dataclasses import dataclass
 import json
 import datetime
+import hashlib
 import typing
 
 
@@ -29,6 +30,7 @@ class LeaseRecord:
     context: str
     sources_json: str
     source_policy: str
+    spec_hash: str
     ttl_seconds: u64
     status: str
     previous_status: str
@@ -79,6 +81,7 @@ class TruthLease(gl.Contract):
         self.leases[lease_id] = LeaseRecord(
             lease_id=lease_id, owner=gl.message.sender_address, proposition=proposition, context=context,
             sources_json=json.dumps(sources, separators=(",", ":")), source_policy=source_policy,
+            spec_hash=self._spec_hash(proposition, context, sources, source_policy),
             ttl_seconds=ttl_seconds, status=status, previous_status="UNVERIFIED",
             reason_code=assessment["reason_code"], evidence_summary=assessment["evidence_summary"],
             confidence=assessment["confidence"], contradiction=assessment["contradiction"],
@@ -102,7 +105,7 @@ class TruthLease(gl.Contract):
         version = u64(int(old.version) + 1)
         valid_until = u64(now + int(old.ttl_seconds)) if status == "CONFIRMED" else u64(0)
         self.leases[lease_id] = LeaseRecord(
-            old.lease_id, old.owner, old.proposition, old.context, old.sources_json, old.source_policy,
+            old.lease_id, old.owner, old.proposition, old.context, old.sources_json, old.source_policy, old.spec_hash,
             old.ttl_seconds, status, previous_status, assessment["reason_code"], assessment["evidence_summary"],
             assessment["confidence"], assessment["contradiction"], assessment["material_change"],
             u32(assessment["source_coverage"]), u64(now), valid_until, version,
@@ -124,6 +127,7 @@ class TruthLease(gl.Contract):
         version = u64(int(old.version) + 1)
         self.leases[lease_id] = LeaseRecord(
             old.lease_id, old.owner, old.proposition, old.context, json.dumps(sources, separators=(",", ":")), source_policy,
+            self._spec_hash(old.proposition, old.context, sources, source_policy),
             old.ttl_seconds, "UNVERIFIED", previous_status, "EVIDENCE_SET_CHANGED",
             "Evidence set changed; consensus revalidation required.", "LOW", False, True, u32(0), u64(0), u64(0), version,
         )
@@ -139,7 +143,7 @@ class TruthLease(gl.Contract):
             raise gl.vm.UserError("lease is not expired")
         version = u64(int(old.version) + 1)
         self.leases[lease_id] = LeaseRecord(
-            old.lease_id, old.owner, old.proposition, old.context, old.sources_json, old.source_policy,
+            old.lease_id, old.owner, old.proposition, old.context, old.sources_json, old.source_policy, old.spec_hash,
             old.ttl_seconds, "STALE", "CONFIRMED", "LEASE_EXPIRED", old.evidence_summary, old.confidence,
             old.contradiction, old.material_change, old.source_coverage, old.verified_at, old.valid_until, version,
         )
@@ -154,6 +158,7 @@ class TruthLease(gl.Contract):
         return {
             "lease_id": lease.lease_id, "owner": lease.owner.as_hex, "proposition": lease.proposition,
             "context": lease.context, "sources": json.loads(lease.sources_json), "source_policy": lease.source_policy,
+            "spec_hash": lease.spec_hash,
             "ttl_seconds": int(lease.ttl_seconds), "stored_status": lease.status, "status": effective,
             "previous_status": lease.previous_status, "reason_code": lease.reason_code,
             "evidence_summary": lease.evidence_summary, "confidence": lease.confidence,
@@ -168,6 +173,20 @@ class TruthLease(gl.Contract):
             return False
         lease = self.leases[lease_id]
         return self._effective_status(lease.status, int(lease.valid_until), self._now()) == "CONFIRMED"
+
+    @gl.public.view
+    def is_usable_for(self, lease_id: str, expected_spec_hash: str) -> bool:
+        if lease_id not in self.leases:
+            return False
+        lease = self.leases[lease_id]
+        return lease.spec_hash == expected_spec_hash and self._effective_status(lease.status, int(lease.valid_until), self._now()) == "CONFIRMED"
+
+    @gl.public.view
+    def compute_spec_hash(self, proposition: str, context: str, sources_json: str, source_policy: str) -> str:
+        self._validate_registration(proposition, sources_json, u64(MIN_TTL_SECONDS))
+        self._validate_context(context)
+        self._validate_source_policy(source_policy)
+        return self._spec_hash(proposition, context, self._parse_sources(sources_json), source_policy)
 
     @gl.public.view
     def get_event_count(self) -> u64:
@@ -275,7 +294,15 @@ Rules: reason_code must map respectively to the four statuses; source_coverage i
             if value in result:
                 raise gl.vm.UserError("duplicate source URL")
             result.append(value)
-        return result
+        return sorted(result)
+
+    def _spec_hash(self, proposition: str, context: str, sources: list[str], source_policy: str) -> str:
+        # TTL is intentionally excluded: it governs freshness duration, while
+        # this binding identifies the proposition and evidence configuration.
+        canonical = json.dumps({"proposition": proposition, "context": context,
+                                "sources": sources, "source_policy": source_policy},
+                               sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     def _parse_assessment(self, raw: typing.Any, source_count: int) -> dict[str, typing.Any]:
         if isinstance(raw, dict):

@@ -1,4 +1,5 @@
 import json
+import datetime
 
 
 SOURCE_A = "https://example.com/source-a"
@@ -126,7 +127,30 @@ def test_registers_confirmed_lease_and_exposes_consumer_view(direct_vm, direct_d
     assert lease["version"] == 1
     assert lease["source_coverage"] == 2
     assert contract.is_usable(lease_id) is True
+    assert contract.is_usable_for(lease_id, lease["spec_hash"]) is True
+    assert contract.is_usable_for(lease_id, "0" * 64) is False
     assert contract.get_event_count() == 1
+
+
+def test_spec_hash_is_source_order_stable_and_expiry_is_deterministic(direct_vm, direct_deploy):
+    contract = direct_deploy("contracts/truth_lease.py")
+    install_confirmed_mocks(direct_vm)
+    first = contract.compute_spec_hash(
+        "Example Org currently lists Jane Doe as executive director.", "Current leadership role.",
+        json.dumps([SOURCE_A, SOURCE_B]), "Prefer current first-party leadership pages.",
+    )
+    second = contract.compute_spec_hash(
+        "Example Org currently lists Jane Doe as executive director.", "Current leadership role.",
+        json.dumps([SOURCE_B, SOURCE_A]), "Prefer current first-party leadership pages.",
+    )
+    assert first == second
+    lease_id = register_confirmed(contract)
+    lease = contract.get_lease(lease_id)
+    direct_vm.warp(datetime.datetime.fromtimestamp(lease["valid_until"] + 1, datetime.UTC).isoformat())
+    assert contract.get_lease(lease_id)["status"] == "STALE"
+    assert contract.is_usable_for(lease_id, first) is False
+    contract.mark_stale(lease_id)
+    assert contract.get_lease(lease_id)["stored_status"] == "STALE"
 
 
 def test_custom_validator_accepts_matching_independent_assessment(direct_vm, direct_deploy):
