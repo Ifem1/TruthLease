@@ -4,14 +4,14 @@
 |---|---|
 | Date | 2026-08-18 |
 | Network | GenLayer Studionet (chain 61999) |
-| Source commit | `e99b2a06e3e9aaface58c7430b13e80c7ddd5a63` |
-| Contract | `0xd638D12370b30877Bdc531E0aD6c2D48a90e520d` |
-| Deployment transaction | `0x797dbc1e259c0e9e380f28098e4d300d094cbd044cab33efbcdd91c890f607c6` |
+| Source commit | `cc1b4db6f8546bcf1958b227d8c1644966248d81` |
+| Contract | `0x706Dba371c2E7907c4da395C6345f636b438c09e` |
+| Deployment transaction | `0x58ba24897decd2a163653862c726ffbed063892047ca89687d00feec3fd3eee8` |
 | Lifecycle | `ACCEPTED` |
 | Consensus | `MAJORITY_AGREE` (3 agree; remaining validators idle after quorum) |
 | Deployer | `0xf8531058e0a3df4ae1d58c11529bcdecb9aa4487` |
 
-The deployed `contracts/truth_lease.py` blob is `39df4966556fd48b3a07dd209a5441f70de65847` at the deployment commit. Later documentation-only commits must retain this exact blob or a new canonical deployment is required.
+The deployed `contracts/truth_lease.py` blob is `7d55700ca4350ec3a2161b1a3cc5bbb18c855b58` at the deployment commit. Later commits must retain this exact blob or a new canonical deployment is required. The prior deployment `0xd638D12370b30877Bdc531E0aD6c2D48a90e520d` is superseded.
 
 ## Runtime evidence
 
