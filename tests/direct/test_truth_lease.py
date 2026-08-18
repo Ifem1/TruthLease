@@ -1,5 +1,4 @@
 import json
-import datetime
 
 
 SOURCE_A = "https://example.com/source-a"
@@ -146,7 +145,7 @@ def test_spec_hash_is_source_order_stable_and_expiry_is_deterministic(direct_vm,
     assert first == second
     lease_id = register_confirmed(contract)
     lease = contract.get_lease(lease_id)
-    direct_vm.warp(datetime.datetime.fromtimestamp(lease["valid_until"] + 1, datetime.UTC).isoformat())
+    direct_vm.warp("2099-01-01T00:00:00+00:00")
     assert contract.get_lease(lease_id)["status"] == "STALE"
     assert contract.is_usable_for(lease_id, first) is False
     contract.mark_stale(lease_id)
