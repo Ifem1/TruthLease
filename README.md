@@ -215,9 +215,13 @@ tests/direct/
   test_truth_lease.py        # storage, lifecycle and validator tests
 docs/
   CONSENSUS.md               # validator/equivalence rationale
+  SECURITY.md                # trust boundaries and fail-closed behavior
+  INTEGRATION.md             # stable consumer interface
+  DEPLOYMENT.md              # canonical live evidence (when available)
   STATE_MACHINE.md           # state-transition specification
-.github/workflows/
-  ci.yml                     # lint + direct tests
+scripts/
+  preflight.py               # zero-dependency structural checks
+SUBMISSION.md                # contribution-portal summary
 ```
 
 ## Development
@@ -241,6 +245,12 @@ Lint:
 genvm-lint check contracts/truth_lease.py
 ```
 
+Fast structural preflight:
+
+```bash
+python scripts/preflight.py
+```
+
 Direct tests:
 
 ```bash
@@ -248,6 +258,10 @@ pytest tests/direct/ -v
 ```
 
 The direct suite uses mocked web/LLM responses and explicitly exercises the custom validator path with `direct_vm.run_validator()`.
+
+## Deployment status
+
+No canonical Studionet deployment is currently recorded. The repository does not claim live runtime evidence that it cannot prove; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the evidence required before portal submission.
 
 ## Example use cases
 

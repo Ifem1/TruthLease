@@ -78,6 +78,40 @@ def test_rejects_ttl_outside_bounds(direct_vm, direct_deploy):
         )
 
 
+def test_rejects_unbounded_or_empty_prompt_inputs(direct_vm, direct_deploy):
+    contract = direct_deploy("contracts/truth_lease.py")
+
+    with direct_vm.expect_revert("source_policy is required"):
+        contract.register_fact(
+            "A proposition long enough to validate.", "", json.dumps([SOURCE_A]), "", 3600
+        )
+
+    with direct_vm.expect_revert("context is too long"):
+        contract.register_fact(
+            "A proposition long enough to validate.", "x" * 2001,
+            json.dumps([SOURCE_A]), "Use first-party evidence.", 3600,
+        )
+
+    with direct_vm.expect_revert("every source must be an HTTPS URL"):
+        contract.register_fact(
+            "A proposition long enough to validate.", "",
+            json.dumps(["https://example.com/has a space"]), "Use first-party evidence.", 3600,
+        )
+
+
+def test_fails_closed_on_malformed_consensus_output(direct_vm, direct_deploy):
+    contract = direct_deploy("contracts/truth_lease.py")
+    direct_vm.mock_web(r"example\.com/source-a", {"status": 200, "body": "Current leadership page."})
+    direct_vm.mock_llm(r"Classify the proposition", '{"status":"CONFIRMED"}')
+
+    with direct_vm.expect_revert("assessment fields are invalid"):
+        contract.register_fact(
+            "Example Org currently lists Jane Doe as executive director.",
+            "Current leadership role.", json.dumps([SOURCE_A]),
+            "Prefer current first-party leadership pages.", 3600,
+        )
+
+
 def test_registers_confirmed_lease_and_exposes_consumer_view(direct_vm, direct_deploy):
     direct_vm.check_pickling = True
     contract = direct_deploy("contracts/truth_lease.py")
