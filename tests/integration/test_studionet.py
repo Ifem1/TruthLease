@@ -1,53 +1,59 @@
-"""Sparse Studionet proof tests.
-
-These tests use genlayer-py's typed ``args`` transport. They are opt-in because
-the signer must be supplied by the operator through ``GENLAYER_PRIVATE_KEY``;
-ordinary CI never contacts public Studionet.
-"""
+"""Sparse official gltest Studionet proof (run explicitly, never normal CI)."""
 import hashlib
 import json
-import os
+
 import pytest
+from gltest import get_contract_factory, get_default_account
 
 pytestmark = pytest.mark.integration
 
-
-ADDRESS = os.getenv("TRUTHLEASE_STUDIONET_ADDRESS", "0x706Dba371c2E7907c4da395C6345f636b438c09e")
+ADDRESS = "0x706Dba371c2E7907c4da395C6345f636b438c09e"
 SOURCE = "https://www.iana.org/domains/reserved"
 PROPOSITION = "IANA maintains a Reserved Domains page."
 CONTEXT = "Use the current first-party IANA documentation page."
 POLICY = "Prefer the current first-party IANA page."
 
 
-def _client():
-    key = os.getenv("GENLAYER_PRIVATE_KEY")
-    if not key:
-        pytest.skip("set GENLAYER_PRIVATE_KEY to run sparse Studionet integration tests")
-    from eth_account import Account
-    from genlayer_py.client import create_client
-    from genlayer_py.chains import studionet
-    return create_client(studionet, endpoint=os.getenv("GENLAYER_RPC", "https://studio.genlayer.com/api"), account=Account.from_key(key))
-
-
-def _expected_hash():
+def expected_hash():
     canonical = json.dumps({"proposition": PROPOSITION, "context": CONTEXT,
                             "sources": [SOURCE], "source_policy": POLICY},
                            sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-    return hashlib.sha256(canonical.encode()).hexdigest()
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def test_studionet_spec_hash_and_registration_readback():
-    client = _client()
-    args = [PROPOSITION, CONTEXT, json.dumps([SOURCE]), POLICY, 3600]
-    expected = _expected_hash()
-    assert client.read_contract(ADDRESS, "compute_spec_hash", args=args) == expected
-    tx = client.write_contract(ADDRESS, "register_fact", args=args)
-    receipt = client.wait_for_transaction_receipt(tx)
+@pytest.fixture(scope="module")
+def contract():
+    factory = get_contract_factory(contract_file_path="truth_lease.py")
+    return factory.build_contract(ADDRESS, account=get_default_account())
+
+
+def test_studionet_registration_readback_and_revalidation(contract):
+    hash_args = [PROPOSITION, CONTEXT, json.dumps([SOURCE]), POLICY]
+    args = hash_args + [3600]
+    spec = expected_hash()
+    assert contract.compute_spec_hash(args=hash_args).call() == spec
+
+    receipt = contract.register_fact(args=args).transact(
+        wait_interval=10, wait_retries=18,
+    )
     assert receipt.status_name == "ACCEPTED"
+    assert receipt.result_name == "MAJORITY_AGREE"
+    assert receipt.execution_result == "SUCCESS"
     lease_id = receipt.return_data
-    lease = client.read_contract(ADDRESS, "get_lease", args=[lease_id])
-    assert lease["spec_hash"] == expected
+    lease = contract.get_lease(args=[lease_id]).call()
     assert lease["status"] == "CONFIRMED"
-    assert client.read_contract(ADDRESS, "is_usable", args=[lease_id]) is True
-    assert client.read_contract(ADDRESS, "is_usable_for", args=[lease_id, expected]) is True
-    assert client.read_contract(ADDRESS, "is_usable_for", args=[lease_id, "0" * 64]) is False
+    assert lease["stored_status"] == "CONFIRMED"
+    assert lease["spec_hash"] == spec
+    assert contract.is_usable(args=[lease_id]).call() is True
+    assert contract.is_usable_for(args=[lease_id, spec]).call() is True
+    assert contract.is_usable_for(args=[lease_id, "0" * 64]).call() is False
+
+    before_version = lease["version"]
+    refreshed = contract.revalidate(args=[lease_id]).transact(
+        wait_interval=10, wait_retries=18,
+    )
+    assert refreshed.status_name == "ACCEPTED"
+    after = contract.get_lease(args=[lease_id]).call()
+    assert after["status"] == "CONFIRMED"
+    assert after["version"] == before_version + 1
+    assert after["spec_hash"] == spec
