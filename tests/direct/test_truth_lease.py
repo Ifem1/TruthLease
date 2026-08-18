@@ -214,3 +214,40 @@ def test_source_update_invalidates_old_confirmation(direct_vm, direct_deploy, di
     assert lease["reason_code"] == "EVIDENCE_SET_CHANGED"
     assert lease["version"] == 2
     assert contract.is_usable(lease_id) is False
+
+
+def test_unknown_lease_views_are_safe(direct_vm, direct_deploy):
+    contract = direct_deploy("contracts/truth_lease.py")
+    assert contract.is_usable("missing") is False
+    assert contract.is_usable_for("missing", "0" * 64) is False
+    with direct_vm.expect_revert("unknown lease"):
+        contract.get_lease("missing")
+
+
+def test_mark_stale_before_expiry_rejects_and_hash_changes_are_deterministic(direct_vm, direct_deploy):
+    contract = direct_deploy("contracts/truth_lease.py")
+    install_confirmed_mocks(direct_vm)
+    lease_id = register_confirmed(contract)
+    with direct_vm.expect_revert("lease is not expired"):
+        contract.mark_stale(lease_id)
+    base = contract.get_lease(lease_id)["spec_hash"]
+    assert contract.compute_spec_hash("changed proposition", "Current leadership role.", json.dumps([SOURCE_A, SOURCE_B]), "Prefer current first-party leadership pages.") != base
+    assert contract.compute_spec_hash("Example Org currently lists Jane Doe as executive director.", "changed context", json.dumps([SOURCE_A, SOURCE_B]), "Prefer current first-party leadership pages.") != base
+    assert contract.compute_spec_hash("Example Org currently lists Jane Doe as executive director.", "Current leadership role.", json.dumps([SOURCE_A, SOURCE_B]), "changed policy") != base
+    assert contract.compute_spec_hash("Example Org currently lists Jane Doe as executive director.", "Current leadership role.", json.dumps([SOURCE_A, SOURCE_B]), "Prefer current first-party leadership pages.") == contract.compute_spec_hash("Example Org currently lists Jane Doe as executive director.", "Current leadership role.", json.dumps([SOURCE_A, SOURCE_B]), "Prefer current first-party leadership pages.")
+
+
+def test_assessment_schema_rejects_missing_extra_and_wrong_types(direct_vm, direct_deploy):
+    contract = direct_deploy("contracts/truth_lease.py")
+    valid = {"status":"CONFIRMED","reason_code":"CURRENTLY_SUPPORTED","confidence":"HIGH","contradiction":False,"material_change":False,"source_coverage":1,"evidence_summary":"grounded"}
+    for malformed in ({k:v for k,v in valid.items() if k != "status"}, {**valid, "extra": 1}, {**valid, "contradiction": 1}, {**valid, "source_coverage": True}, {**valid, "evidence_summary": ""}):
+        with direct_vm.expect_revert():
+            contract._normalize_assessment(malformed, 1)
+
+
+def test_source_coverage_and_confidence_equivalence_boundaries(direct_vm, direct_deploy):
+    contract = direct_deploy("contracts/truth_lease.py")
+    install_confirmed_mocks(direct_vm)
+    register_confirmed(contract)
+    assert direct_vm.run_validator(leader_result={"status":"CONFIRMED","reason_code":"CURRENTLY_SUPPORTED","confidence":"MEDIUM","contradiction":False,"material_change":False,"source_coverage":1,"evidence_summary":"different wording"}) is True
+    assert direct_vm.run_validator(leader_result={"status":"CONFIRMED","reason_code":"CURRENTLY_SUPPORTED","confidence":"LOW","contradiction":False,"material_change":False,"source_coverage":0,"evidence_summary":"different wording"}) is False
