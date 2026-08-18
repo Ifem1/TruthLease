@@ -3,7 +3,8 @@
 - **Category:** Standalone Intelligent Contract
 - **Purpose:** Consensus-backed, expiring factual leases for contracts that need a fresh external claim before acting.
 - **Repository:** https://github.com/Ifem1/TruthLease
-- **Canonical Studionet address / deployment transaction:** Not yet recorded; see `docs/DEPLOYMENT.md`.
+- **Canonical Studionet address:** `0xd638D12370b30877Bdc531E0aD6c2D48a90e520d`
+- **Deployment transaction:** `0x797dbc1e259c0e9e380f28098e4d300d094cbd044cab33efbcdd91c890f607c6` (`ACCEPTED`, `MAJORITY_AGREE`)
 
 TruthLease uses GenLayer consensus for the load-bearing semantic task: independent validators retrieve the registered evidence set and assess whether it currently supports, conflicts with, overturns, or cannot establish a proposition. Exact lifecycle semantics are compared; bounded source-availability and confidence differences are tolerated. Deterministic code controls IDs, ownership, bounds, expiry, state mutation, and downstream usability.
 
@@ -11,4 +12,4 @@ It is not a thin LLM wrapper: the leader result is treated as untrusted, parsed 
 
 Reviewer fast path: run `python scripts/preflight.py`, `pytest tests/direct -v`, and `genvm-lint check contracts/truth_lease.py`; then read `docs/CONSENSUS.md`, `docs/SECURITY.md`, and `docs/INTEGRATION.md`.
 
-Limitations: evidence authority remains a consumer policy decision; a malicious validator majority or compromised source cannot be eliminated by the contract.
+Limitations: evidence authority remains a consumer policy decision; a malicious validator majority or compromised source cannot be eliminated by the contract. The canonical deployment is verified, but a successful live `register_fact` runtime assessment and committed independent Studionet integration suite remain pending; the recorded runtime evidence is currently the fail-closed input-validation transaction.
