@@ -21,6 +21,13 @@ def expected_hash():
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def receipt_field(receipt, field):
+    """Support the mapping receipts returned by current genlayer-py."""
+    if isinstance(receipt, dict):
+        return receipt[field]
+    return getattr(receipt, field)
+
+
 @pytest.fixture(scope="module")
 def contract():
     factory = get_contract_factory(contract_file_path="truth_lease.py")
@@ -34,12 +41,15 @@ def test_studionet_registration_readback_and_revalidation(contract):
     assert contract.compute_spec_hash(args=hash_args).call() == spec
 
     receipt = contract.register_fact(args=args).transact(
-        wait_interval=10, wait_retries=18,
+        # genlayer-py expresses this value in milliseconds.  Ten seconds gives
+        # Studionet validators time to render evidence and reach consensus.
+        wait_interval=10_000, wait_retries=18,
     )
-    assert receipt.status_name == "ACCEPTED"
-    assert receipt.result_name == "MAJORITY_AGREE"
-    assert receipt.execution_result == "SUCCESS"
-    lease_id = receipt.return_data
+    assert receipt_field(receipt, "status_name") == "ACCEPTED"
+    assert receipt_field(receipt, "result_name") == "MAJORITY_AGREE"
+    assert receipt_field(receipt, "execution_result") == "SUCCESS"
+    print("LIVE_REGISTER_RECEIPT", receipt)
+    lease_id = receipt_field(receipt, "return_data")
     lease = contract.get_lease(args=[lease_id]).call()
     assert lease["status"] == "CONFIRMED"
     assert lease["stored_status"] == "CONFIRMED"
@@ -50,9 +60,12 @@ def test_studionet_registration_readback_and_revalidation(contract):
 
     before_version = lease["version"]
     refreshed = contract.revalidate(args=[lease_id]).transact(
-        wait_interval=10, wait_retries=18,
+        wait_interval=10_000, wait_retries=18,
     )
-    assert refreshed.status_name == "ACCEPTED"
+    assert receipt_field(refreshed, "status_name") == "ACCEPTED"
+    assert receipt_field(refreshed, "result_name") == "MAJORITY_AGREE"
+    assert receipt_field(refreshed, "execution_result") == "SUCCESS"
+    print("LIVE_REVALIDATE_RECEIPT", refreshed)
     after = contract.get_lease(args=[lease_id]).call()
     assert after["status"] == "CONFIRMED"
     assert after["version"] == before_version + 1
