@@ -114,6 +114,7 @@ proposition
 context
 sources_json
 source_policy
+spec_hash
 ttl_seconds
 status
 previous_status
@@ -164,9 +165,25 @@ Persists deterministic expiry into storage for indexers. Consumers do **not** ne
 
 Returns the stored record plus its current effective status.
 
+### `compute_spec_hash(proposition, context, sources_json, source_policy) -> str`
+
+Computes the deterministic specification hash that binds a proposition to its context, canonical source set, and source policy. Consumers should compute and pin this value when they configure a lease requirement.
+
+### `is_usable_for(lease_id, expected_spec_hash) -> bool`
+
+The recommended downstream integration surface. It returns `True` only when the lease is currently `CONFIRMED`, within its deterministic TTL, and bound to the exact specification hash pinned by the consuming contract:
+
+```python
+expected = truthlease.view().compute_spec_hash(
+    proposition, context, sources_json, source_policy
+)
+if not truthlease.view().is_usable_for(lease_id, expected):
+    raise gl.vm.UserError("matching fresh confirmed TruthLease required")
+```
+
 ### `is_usable(lease_id) -> bool`
 
-The simplest integration surface for another contract:
+Convenience-only check for consumers that have already pinned the lease/specification identity elsewhere. It checks freshness and confirmation, but does not itself bind the lease to an expected proposition, context, source set, or policy. Prefer `is_usable_for` for new integrations.
 
 ```python
 if not truthlease.view().is_usable(lease_id):
