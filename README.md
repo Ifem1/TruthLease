@@ -261,7 +261,7 @@ The direct suite uses mocked web/LLM responses and explicitly exercises the cust
 
 ## Deployment status
 
-The canonical Studionet deployment is [`0x706Dba371c2E7907c4da395C6345f636b438c09e`](https://genlayer-explorer.vercel.app) from transaction `0x58ba24897decd2a163653862c726ffbed063892047ca89687d00feec3fd3eee8` (`ACCEPTED`, `MAJORITY_AGREE`). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for exact source parity and runtime evidence. A successful live `register_fact` assessment remains unverified.
+The canonical Studionet deployment is [`0x706Dba371c2E7907c4da395C6345f636b438c09e`](https://genlayer-explorer.vercel.app) from transaction `0x58ba24897decd2a163653862c726ffbed063892047ca89687d00feec3fd3eee8` (`ACCEPTED`, `MAJORITY_AGREE`). A current-source live registration (`0x5060ca22ef130dcfbb1a22f5a05e9fdeabeefebc44839462d5c884807f890cfe`) and revalidation (`0xee7d913ce8f4e07c07df64c807e6e4a4aa03c387dfe28248b75457f59655e4b0`) both reached `ACCEPTED` / `MAJORITY_AGREE`; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Example use cases
 

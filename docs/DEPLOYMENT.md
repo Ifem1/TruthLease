@@ -21,4 +21,15 @@ The first runtime call intentionally demonstrated a fail-closed argument-validat
 - Lifecycle: `ACCEPTED`; consensus: `MAJORITY_AGREE`
 - Result: rollback, `sources_json must be valid JSON`
 
-The CLI encoded the JSON-string argument without quotation marks, so no lease was created. This is valid negative evidence only; it is not a successful consensus assessment. A separate successful `register_fact` runtime path remains required before final portal submission.
+The CLI encoded the JSON-string argument without quotation marks, so no lease was created. This is valid negative evidence only; it is not a successful consensus assessment.
+
+## Verified live consensus path (2026-08-20)
+
+- Registration transaction: `0x5060ca22ef130dcfbb1a22f5a05e9fdeabeefebc44839462d5c884807f890cfe`
+- Lifecycle: `ACCEPTED`; consensus: `MAJORITY_AGREE`
+- Stored result: `lease-7`, `CONFIRMED`, `source_coverage=1`, `is_usable=true`
+- Revalidation transaction: `0xee7d913ce8f4e07c07df64c807e6e4a4aa03c387dfe28248b75457f59655e4b0`
+- Lifecycle: `ACCEPTED`; consensus: `MAJORITY_AGREE`
+- Stored result after revalidation: `CONFIRMED`, version incremented, specification hash unchanged
+
+These transactions exercised the current deployed contract source and used the public IANA Reserved Domains page as the safe evidence source. Validator quorum was reached with agreeing validators; remaining validators were cancelled/idle after quorum.

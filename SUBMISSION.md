@@ -12,4 +12,4 @@ It is not a thin LLM wrapper: the leader result is treated as untrusted, parsed 
 
 Reviewer fast path: run `python scripts/preflight.py`, `pytest tests/direct -v`, and `genvm-lint check contracts/truth_lease.py`; then read `docs/CONSENSUS.md`, `docs/SECURITY.md`, and `docs/INTEGRATION.md`.
 
-Limitations: evidence authority remains a consumer policy decision; a malicious validator majority or compromised source cannot be eliminated by the contract. The canonical deployment is verified, but a successful live `register_fact` runtime assessment and committed independent Studionet integration suite remain pending; the recorded runtime evidence is currently the fail-closed input-validation transaction.
+Limitations: evidence authority remains a consumer policy decision; a malicious validator majority or compromised source cannot be eliminated by the contract. The canonical deployment and current-source live registration/revalidation are verified; the recorded negative evidence remains the fail-closed input-validation transaction.
